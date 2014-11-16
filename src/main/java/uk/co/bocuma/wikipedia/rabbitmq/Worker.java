@@ -27,23 +27,33 @@ public class Worker {
              java.lang.InterruptedException {
     this.channel = createChannel();
 
-    channel.queueDeclare(config.getBrokerQueue(), false, false, false, null);
+    this.channel.exchangeDeclare(this.config.getExchangeName(),"direct");
+    String queueName = channel.queueDeclare().getQueue();
 
+    this.channel.queueBind(queueName, this.config.getExchangeName(),this.config.processJobQueueName());
     QueueingConsumer consumer = createConsumer();
-    this.channel.basicConsume(this.config.getBrokerQueue(), true, consumer );
+    this.channel.basicConsume(queueName, true, consumer );
     while (true) {
       QueueingConsumer.Delivery delivery = consumer.nextDelivery();
       String page = new String(delivery.getBody());
+      String routingKey = delivery.getEnvelope().getRoutingKey();
       try {
+        channel.basicPublish(this.config.getExchangeName(), "status", null, stateMessage(page, WikipediaConfig.States.DOWNLOADING).getBytes());
         downloadPage(page);
-      } catch( Exception e) {
-      }
-      try {
+        channel.basicPublish(this.config.getExchangeName(), "status", null, stateMessage(page, WikipediaConfig.States.DOWNLOADED).getBytes());
+        channel.basicPublish(this.config.getExchangeName(), "status", null, stateMessage(page, WikipediaConfig.States.PROCESSING).getBytes());
         processPage(page);
+        channel.basicPublish(this.config.getExchangeName(), "status", null, stateMessage(page, WikipediaConfig.States.PROCESSED).getBytes());
+        channel.basicPublish(this.config.getExchangeName(), "status", null, stateMessage(page, WikipediaConfig.States.COMPLETED).getBytes());
       } catch ( Exception e) {
+        channel.basicPublish(this.config.getExchangeName(), "status", null, stateMessage(page, WikipediaConfig.States.ERROR).getBytes());
       }
-      this.channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+      //this.channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
     }
+  }
+
+  private String stateMessage(String page,String status) {
+    return page + "-" + status;
   }
 
   private Channel createChannel() throws java.io.IOException {
@@ -53,13 +63,13 @@ public class Worker {
     return connection.createChannel();
   }
 
-  private void downloadPage(String page) {
+  private void downloadPage(String page) throws Exception {
     Downloader d = new Downloader(config,page);
     d.download();
   }
 
   private void processPage(String page) throws Exception  {
-    MapReduce.runJob(this.config.getOutputDir() + page + ".xml", this.config.getOutputDir() + page + ".out");
+    MapReduce.runJob(this.config.getOutputDir() + "/" + page + ".xml", this.config.getOutputDir() + "/" + page + ".out");
   }
 
 
