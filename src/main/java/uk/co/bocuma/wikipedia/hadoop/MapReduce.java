@@ -154,7 +154,7 @@ public final class MapReduce {
 
   public static void runJob(String input,
                             String output)
-      throws Exception {
+      throws IOException, InterruptedException, ClassNotFoundException {
     Configuration conf = new Configuration();
     conf.set("key.value.separator.in.input.line", " ");
     conf.set("xmlinput.start", "<revision>");
