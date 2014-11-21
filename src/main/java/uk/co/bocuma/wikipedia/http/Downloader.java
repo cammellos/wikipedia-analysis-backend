@@ -8,27 +8,26 @@ import java.io.FileOutputStream;
 
 public class Downloader  {
   private WikipediaConfig config;
-  private String page;
+  private String title;
+  private String language;
 
-  private static final String BASE_URL = "http://en.wikipedia.org/w/index.php?title=Special:Export&pages=token%0ATalk:token&offset=1&action=submit";
+  private static final String BASE_URL = "http://**language**.wikipedia.org/w/index.php?title=Special:Export&pages=**token**%0ATalk:**token**&offset=1&action=submit";
 
-  public Downloader(WikipediaConfig config,String page) {
+  public Downloader(WikipediaConfig config,String title, String language) {
     this.config = config;
-    this.page = page;
+    this.title = title;
+    this.language = language;
   }
 
   public void download() throws Exception {
    URL url = new URL(buildUrl());
    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
    connection.setRequestMethod("POST");
-   IOUtils.copy(connection.getInputStream(), new FileOutputStream(buildOutputName()));
+   IOUtils.copy(connection.getInputStream(), new FileOutputStream(config.mrInputFile(title,language)));
   }
 
   private String buildUrl() {
-    return Downloader.BASE_URL.replaceAll("token",page);
-  }
-  private String buildOutputName() {
-    return this.config.getOutputDir() + "/" + this.page + ".xml";
+    return Downloader.BASE_URL.replaceAll("**token**",title).replaceAll("**language**",language);
   }
 
 

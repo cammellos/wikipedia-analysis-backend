@@ -32,6 +32,15 @@ public class WikipediaConfig {
   public String getOutputDir() {
     return this.outputDir;
   }
+
+  public String mrInputFile(String title,String language) {
+    return getOutputDir() + "/" + language + "-" + title + ".xml";
+  }
+  public String mrOutputFile(String title,String language) {
+    return getOutputDir() + "/" + language + "-" +  title + ".out";
+  }
+
+
   public String processJobQueueName() {
     return this.processJobQueueName;
   }
